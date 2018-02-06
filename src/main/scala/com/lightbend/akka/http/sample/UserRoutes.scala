@@ -2,20 +2,20 @@ package com.lightbend.akka.http.sample
 
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.event.Logging
-
 import scala.concurrent.duration._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.ws.{ Message, TextMessage }
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.MethodDirectives.delete
 import akka.http.scaladsl.server.directives.MethodDirectives.get
 import akka.http.scaladsl.server.directives.MethodDirectives.post
 import akka.http.scaladsl.server.directives.RouteDirectives.complete
 import akka.http.scaladsl.server.directives.PathDirectives.path
-
 import scala.concurrent.Future
 import com.lightbend.akka.http.sample.UserRegistryActor._
 import akka.pattern.ask
+import akka.stream.scaladsl.{ Flow, Source }
 import akka.util.Timeout
 
 //#user-routes-class
@@ -33,11 +33,26 @@ trait UserRoutes extends JsonSupport {
   // Required by the `ask` (?) method below
   implicit lazy val timeout = Timeout(5.seconds) // usually we'd obtain the timeout from the system's configuration
 
+  val greeterWebSocketService =
+    Flow[Message]
+      .collect {
+        case tm: TextMessage => TextMessage(Source.single("Hello from our little web socket"))
+      }
+
+  //#websocket-routing
+  val wsRoute =
+    path("greeter") {
+      get {
+        handleWebSocketMessages(greeterWebSocketService)
+      }
+    }
+  //#websocket-routing
+
   //#all-routes
   //#users-get-post
   //#users-get-delete   
   lazy val userRoutes: Route =
-    pathPrefix("users") {
+    wsRoute ~ pathPrefix("users") {
       concat(
         //#users-get-delete
         pathEnd {
