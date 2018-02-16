@@ -6,7 +6,7 @@ import scala.concurrent.duration._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.{ Message, TextMessage }
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ ExceptionHandler, Route }
 import akka.http.scaladsl.server.directives.MethodDirectives.delete
 import akka.http.scaladsl.server.directives.MethodDirectives.get
 import akka.http.scaladsl.server.directives.MethodDirectives.post
@@ -17,6 +17,7 @@ import com.lightbend.akka.http.sample.UserRegistryActor._
 import akka.pattern.ask
 import akka.stream.scaladsl.{ Flow, Source }
 import akka.util.Timeout
+import scala.util.control.NonFatal
 
 //#user-routes-class
 trait UserRoutes extends JsonSupport {
@@ -58,7 +59,6 @@ trait UserRoutes extends JsonSupport {
         pathEnd {
           concat(
             get {
-              println("Within 'get' directive of /users")
               val users: Future[Users] =
                 (userRegistryActor ? GetUsers).mapTo[Users]
               complete(users)
